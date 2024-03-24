@@ -1,12 +1,18 @@
 import time
+import argparse
 
 from client import Client
 from loguru import logger
 from chord_simulation.chord.chord_base import connect_node, hash_func
 from chord_simulation.chord.struct_class import Node
 
+parser = argparse.ArgumentParser(description='chord simulation.')
+parser.add_argument('-t', '--task_type', type=str, default='basic_query',
+                    choices=['basic_query', 'finger_table'],
+                    help='simulation type:[basic_query|finger_table]')
 
-def build_chord_ring():
+
+def build_chord_ring_for_basic_query():
     node1 = Node(hash_func('localhost:50001'), 'localhost', 50001)
     node2 = Node(hash_func('localhost:50002'), 'localhost', 50002)
     node3 = Node(hash_func('localhost:50003'), 'localhost', 50003)
@@ -20,6 +26,10 @@ def build_chord_ring():
     time.sleep(5)
 
 
+def build_chord_ring_for_finger_table():
+    raise ValueError("not implement yet")
+
+
 def init_data_content(client):
     logger.info("init data content...")
     for i in range(50):
@@ -28,9 +38,15 @@ def init_data_content(client):
 
 
 def main():
+    args = parser.parse_args()
+    if args.task_type == 'basic_query':
+        build_chord_ring_for_basic_query()
+    elif args.task_type == 'finger_table':
+        build_chord_ring_for_finger_table()
+
     client = Client("localhost", 50001)
     init_data_content(client)
-    print("operation format：[ put <key> <value> | get <key>]")
+    print("operation format：[ put <key> <value> | get <key> ]")
     while True:
         cmd = input()
         params = cmd.split(' ')
@@ -56,5 +72,4 @@ def main():
 
 
 if __name__ == '__main__':
-    build_chord_ring()
     main()
