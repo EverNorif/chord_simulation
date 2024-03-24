@@ -1,5 +1,6 @@
 import time
 import argparse
+import traceback
 
 from client import Client
 from loguru import logger
@@ -37,6 +38,32 @@ def init_data_content(client):
         time.sleep(0.5)
 
 
+def cmd_interaction(client: Client):
+    cmd = input()
+    params = cmd.split(' ')
+
+    if len(params[0]) == 0:
+        return
+
+    if params[0] not in ['put', 'get']:
+        print("> only support two operation: put/get")
+        return
+
+    if params[0] == 'put' and len(params) == 3:
+        key, value = str(params[1]), str(params[2])
+        status, node_id = client.put(key, value)
+        h = hash_func(key)
+        print(f'> hash func({key}) = {h}, put status is {status}, this value will be stored in server-{node_id}')
+    elif params[0] == 'get' and len(params) == 2:
+        key = str(params[1])
+        status, key, value, node_id = client.get(key)
+        h = hash_func(key)
+        print(f'> hash func({key}) == {h}, find key in server-{node_id}, get status is {status}.')
+        print(f'> get result: key: {key}, value: {value}')
+    else:
+        print(f'> no support operation format')
+
+
 def main():
     args = parser.parse_args()
     if args.task_type == 'basic_query':
@@ -48,27 +75,12 @@ def main():
     init_data_content(client)
     print("operation format：[ put <key> <value> | get <key> ]")
     while True:
-        cmd = input()
-        params = cmd.split(' ')
-
-        if len(params[0]) == 0:
-            continue
-
-        if params[0] not in ['put', 'get']:
-            print("> only support two operation: put/get")
-            continue
-
-        if params[0] == 'put' and len(params) == 3:
-            key, value = params[1], params[2]
-            status, node_id = client.put(key, value)
-            h = hash_func(key)
-            print(f'> hash func({key}) = {h}, put status is {status}, this value will be stored in server-{node_id}')
-        elif params[0] == 'get' and len(params) == 2:
-            key = params[1]
-            status, key, value, node_id = client.get(key)
-            h = hash_func(key)
-            print(f'> hash func({key}) == {h}, find key in server-{node_id}, get status is {status}.')
-            print(f'> get result: key: {key}, value: {value}')
+        try:
+            cmd_interaction(client)
+        except Exception as e:
+            logger.warning(e)
+            logger.warning(traceback.format_exc())
+            print('------')
 
 
 if __name__ == '__main__':
