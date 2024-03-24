@@ -11,7 +11,7 @@ pip install -r requirements.txt
 
 主要需要安装如下第三方库：
 
--   [Thriftpy/thriftpy2](https://github.com/Thriftpy/thriftpy2)：Thrifty的Python实现，用于RPC通信
+-   [Thriftpy/thriftpy2](https://github.com/Thriftpy/thriftpy2)：Thrift的Python实现，用于RPC通信
 -   [Delgan/loguru](https://github.com/Delgan/loguru)：开箱即用的Python日志管理框架
 
 ## Project Structure
@@ -137,7 +137,7 @@ implement目录下存放了ChordNode相关的真实实现，主要包括：
 
 Chord的模拟运行主要分为两步，第一步是通过Python在本地启动不同的server进程，第二步是通过`simulation.py`程序来模拟Chord环的构建，测试数据的导入以及提供客户端的相关交互操作。下面是运行示例，演示了Basic Query的模拟效果：
 
-<video src="./asserts/run_example.mp4"></video>
+https://github.com/EverNorif/chord_simulation/assets/79133788/e014906e-cae7-491a-93eb-5d04f643eec3
 
 首先，通过Python启动不同的ChordNode进程，这里在本地启动了3个进程，并分别运行在50001，50002和50003端口上。
 
