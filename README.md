@@ -52,14 +52,14 @@ service ChordNode {
 
 ```idl
 enum KVStatus {
-    VALID, NOT_FOUND // 表示K-V Pari的状态，包括有效VALID以及未找到NOT_FOUND
+    VALID, NOT_FOUND // 表示K-V Pair的状态，包括有效VALID以及未找到NOT_FOUND
 }
 
 struct KeyValueResult {
     1: string key,
     2: string value,
-    3: i32 node_id, // 表示该K-V Pari实际存储在哪个node结点上
-    4: KVStatus status, // 表示该K-V Pari的状态
+    3: i32 node_id, // 表示该K-V Pair实际存储在哪个node结点上
+    4: KVStatus status, // 表示该K-V Pair的状态
 }
 
 struct Node {
@@ -77,7 +77,7 @@ struct Node {
 除了在thrift文件中定义的向外暴露的接口，该类中还定义了其他可能会使用到的函数。提供的函数列表如下：
 
 -   `lookup(self, key: str) -> KeyValueResult`: 对应thrift文件中的lookup
--   `_lookup_local(self, key: str) -> KeyValueResult`: 在本地KV存储中寻找对应的K-V Pari
+-   `_lookup_local(self, key: str) -> KeyValueResult`: 在本地KV存储中寻找对应的K-V Pair
 -   `find_successor(self, key_id: int) -> Node`: 对应thrift文件中的find_successor
 -   `_closet_preceding_node(self, key_id: int) -> Node`: 返回在find_successor过程中下一步应该寻找的结点
 -   `put(self, key: str, value: str) -> KeyValueResult`: 对应thrift文件中的put
