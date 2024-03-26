@@ -68,7 +68,7 @@ class ChordNode(BaseChordNode):
 
     def join(self, node: Node):
         conn_node = connect_node(node)
-        self.predecessor = conn_node.find_successor(self.node_id)
+        self.successor = conn_node.find_successor(self.node_id)
 
     def notify(self, node: Node):
         if not self.predecessor.valid or is_between(node, self.predecessor, self.self_node):
