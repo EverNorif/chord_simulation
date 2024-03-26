@@ -41,10 +41,10 @@ pip install -r requirements.txt
 service ChordNode {
     KeyValueResult lookup(1: string key), // 查询key对应的value，返回KeyValueResult
     Node find_successor(1: i32 key_id), // 查询key/id在chord环上对应的后继是哪一个
-    KeyValueResult put(1: string key, 2: string value), // 向该ChordNode执行put操作
-    void join(1: Node node), // 向node结点发送加入请求
-    void notify(1: Node node), // 提示该ChordNode修改前驱为node
-    Node get_predecessor(), // 返回自身的前驱
+    KeyValueResult put(1: string key, 2: string value), // 向本ChordNode执行put操作
+    void join(1: Node node), // 将本ChordNode加入node结点所在的chord环
+    void notify(1: Node node), // 提示本ChordNode修改前驱为node
+    Node get_predecessor(), // 返回本ChordNode的前驱
 }
 ```
 
@@ -97,7 +97,7 @@ struct Node {
 -   `hash_func(intput_str) -> int`: chord算法中对应的hash函数实现
 -   `connect_address(address, port)`: 连接给定地址和端口对应的服务对象
 -   `connect_node(node: Node)`: 连接给定Node对应的服务对象
--   `is_between(node: Node, node1: Node, node2: Node)`: 用于chord环上的范围判断，判断node是否在node1->node2这段顺时针弧上
+-   `is_between(node: Node, node1: Node, node2: Node)`: 用于chord环上的范围判断，判断node是否在node1->node2这段顺时针弧上，包括node2但是不包括node1，即在逻辑上判断node是否属于(node1, node2]
 
 >   这里需要注意的是，只有在通过相关工具函数获得了对应地址和端口的服务对象之后，才能调用暴露出来的相关方法。
 

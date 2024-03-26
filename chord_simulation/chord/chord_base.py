@@ -108,12 +108,13 @@ def connect_node(node: Node):
 
 def is_between(node: Node, node1: Node, node2: Node):
     """
-     judge if node is on the clockwise arc(node1->node2), not include the endpoints
+     judge if node is on the clockwise arc(node1->node2), include node2 not include node1.
+     just like node in (node1, node2]
     """
     start_node_id, end_node_id = node1.node_id, node2.node_id
     if start_node_id < end_node_id:
-        return start_node_id < node.node_id < end_node_id
+        return start_node_id < node.node_id <= end_node_id
     elif start_node_id == end_node_id:
-        return node.node_id != start_node_id
+        return True
     else:
-        return node.node_id > start_node_id or node.node_id < end_node_id
+        return node.node_id > start_node_id or node.node_id <= end_node_id
