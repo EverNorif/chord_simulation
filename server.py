@@ -12,6 +12,7 @@ parser.add_argument('-t', '--task_type', type=str, default='basic_query',
                     help='simulation type:[basic_query|finger_table]')
 parser.add_argument('-a', '--address', type=str, default='localhost', help='server address')
 parser.add_argument('-p', '--port', type=int, help='server port')
+parser.add_argument('--timeout', type=int, default=10, help='client timeout[min]')
 
 if __name__ == '__main__':
     args = parser.parse_args()
@@ -21,5 +22,6 @@ if __name__ == '__main__':
     elif args.task_type == 'finger_table':
         node = ChordNodeFingerTable(args.address, args.port)
 
-    server = make_server(chord_thrift.ChordNode, node, args.address, args.port)
+    timeout_ms = args.timeout * 60 * 1000
+    server = make_server(chord_thrift.ChordNode, node, args.address, args.port, client_timeout=timeout_ms)
     server.serve()
