@@ -31,7 +31,7 @@ class ChordNode(BaseChordNode):
         if is_between(tmp_key_node, self.predecessor, self.self_node):
             return self._lookup_local(key)
         else:
-            next_node = self._closet_preceding_node(h)
+            next_node = self._closest_preceding_node(h)
             conn_next_node = connect_node(next_node)
             return conn_next_node.lookup(key)
 
@@ -45,11 +45,11 @@ class ChordNode(BaseChordNode):
         if is_between(key_id_node, self.self_node, self.successor):
             return self.self_node
         else:
-            next_node = self._closet_preceding_node(key_id)
+            next_node = self._closest_preceding_node(key_id)
             conn_next_node = connect_node(next_node)
             return conn_next_node.find_successor(key_id)
 
-    def _closet_preceding_node(self, key_id: int) -> Node:
+    def _closest_preceding_node(self, key_id: int) -> Node:
         return self.successor
 
     def put(self, key: str, value: str) -> KeyValueResult:
@@ -58,7 +58,7 @@ class ChordNode(BaseChordNode):
         if is_between(tmp_key_node, self.predecessor, self.self_node):
             return self.__do_put(key, value)
         else:
-            next_node = self._closet_preceding_node(h)
+            next_node = self._closest_preceding_node(h)
             conn_next_node = connect_node(next_node)
             return conn_next_node.put(key, value)
 

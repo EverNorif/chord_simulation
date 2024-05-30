@@ -33,7 +33,7 @@ class BaseChordNode:
     def find_successor(self, key_id: int) -> Node:
         raise NotImplementedError
 
-    def _closet_preceding_node(self, key_id: int) -> Node:
+    def _closest_preceding_node(self, key_id: int) -> Node:
         raise NotImplementedError
 
     def put(self, key: str, value: str) -> KeyValueResult:
