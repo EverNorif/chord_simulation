@@ -23,6 +23,7 @@ class BaseChordNode:
         self.__timer = threading.Timer(self._interval, self.run_periodically)
         self.__timer.start()
         self.predecessor = None
+        self.rpc_pool = []
 
     def lookup(self, key: str) -> KeyValueResult:
         raise NotImplementedError
@@ -86,12 +87,12 @@ def hash_func(intput_str) -> int:
     return hash_int
 
 
-def connect_address(address, port):
+def connect_address(address, port, timeout=3000):
     """
      connect address:port if it is online, else None
     """
     try:
-        node = make_client(chord_thrift.ChordNode, address, port)
+        node = make_client(chord_thrift.ChordNode, address, port, timeout=timeout)
         return node
     except Exception as e:
         logger.warning(e)
@@ -99,11 +100,11 @@ def connect_address(address, port):
         return None
 
 
-def connect_node(node: Node):
+def connect_node(node: Node, timeout=3000):
     """
      connect node if node is online, else None
     """
-    return connect_address(node.address, node.port)
+    return connect_address(node.address, node.port, timeout=timeout)
 
 
 def is_between(node: Node, node1: Node, node2: Node):
