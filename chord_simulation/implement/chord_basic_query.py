@@ -10,13 +10,21 @@ class ChordNode(BaseChordNode):
 
         self.node_id = hash_func(f'{address}:{port}')
         self.kv_store = dict()
+        self.backup_kv_store = {
+            'successor': dict(),
+            'suc_successor': dict(),
+        }
 
         self.self_node = Node(self.node_id, address, port)
         self.successor = self.self_node
+        self.suc_successor = self.self_node
         self.predecessor = Node(self.node_id, address, port, valid=False)
 
         self.successor_rpc_pool_idx = 0
         self.rpc_pool.append(None)
+        self.suc_successor_rpc_pool_idx = 1
+        self.backup_rpc_pool.append(None)
+        self.backup_rpc_pool.append(None)
 
         self.init_finish = False
 
@@ -27,9 +35,19 @@ class ChordNode(BaseChordNode):
         for k, v in self.kv_store.items():
             msg += f'hash_func({k})={hash_func(k)}: {v}; '
         self.logger.debug(msg)
+        msg = 'successor backup: '
+        for k, v in self.backup_kv_store['successor'].items():
+            msg += f'hash_func({k})={hash_func(k)}: {v}; '
+        self.logger.debug(msg)
+        msg = 'suc_successor backup: '
+        for k, v in self.backup_kv_store['suc_successor'].items():
+            msg += f'hash_func({k})={hash_func(k)}: {v}; '
+        self.logger.debug(msg)
 
         pre_node_id = self.predecessor.node_id if self.predecessor.valid else "null"
         self.logger.debug(f"{pre_node_id} - {self.node_id} - {self.successor.node_id}")
+
+        self.logger.debug(f"backup list: [{self.successor.node_id}, {self.suc_successor.node_id}]")
 
     def lookup(self, key: str) -> KeyValueResult:
         h = hash_func(key)
@@ -73,6 +91,7 @@ class ChordNode(BaseChordNode):
         conn_node = connect_node(node)
         self.successor = conn_node.find_successor(self.node_id)
         self.rpc_pool[self.successor_rpc_pool_idx] = connect_node(self.successor)
+        self._fix_backup_rpc_pool()
 
     def notify(self, node: Node):
         if not self.predecessor.valid or is_between(node, self.predecessor, self.self_node):
@@ -81,6 +100,7 @@ class ChordNode(BaseChordNode):
     def _stabilize(self):
         if not self.init_finish:
             self.rpc_pool[self.successor_rpc_pool_idx] = connect_node(self.successor)
+            self._fix_backup_rpc_pool()
             self.init_finish = True
 
         conn_successor = self.rpc_pool[self.successor_rpc_pool_idx]
@@ -89,6 +109,7 @@ class ChordNode(BaseChordNode):
             self.successor = x
             self.rpc_pool[self.successor_rpc_pool_idx] = connect_node(self.successor)
 
+        self._fix_backup_rpc_pool()
         conn_successor = self.rpc_pool[self.successor_rpc_pool_idx]
         conn_successor.notify(self.self_node)
 
@@ -97,3 +118,15 @@ class ChordNode(BaseChordNode):
 
     def _check_predecessor(self):
         pass
+
+    def get_successor(self) -> Node:
+        return self.successor
+
+    def _fix_backup_rpc_pool(self):
+        """
+        fix backup rpc pool when successor change.
+        backup rpc pool includes successor, successor.successor
+        """
+        self.suc_successor = self.rpc_pool[self.successor_rpc_pool_idx].get_successor()
+        self.backup_rpc_pool[self.successor_rpc_pool_idx] = self.rpc_pool[self.successor_rpc_pool_idx]
+        self.backup_rpc_pool[self.suc_successor_rpc_pool_idx] = connect_node(self.suc_successor)

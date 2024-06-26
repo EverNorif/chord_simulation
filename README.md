@@ -45,6 +45,7 @@ service ChordNode {
     void join(1: Node node), // 将本ChordNode加入node结点所在的chord环
     void notify(1: Node node), // 提示本ChordNode修改前驱为node
     Node get_predecessor(), // 返回本ChordNode的前驱
+    Node get_successor(), // 返回本ChordNode的后继
 }
 ```
 
@@ -87,6 +88,7 @@ struct Node {
 -   `_fix_fingers(self)`: 定期执行的第二个操作，修复自身的finger table
 -   `_check_predecessor(self)`: 定期执行的第三个操作，检查前驱是否正常工作
 -   `get_predecessor(self) -> Node`: 对应thrift文件中的get_predecessor
+-   `get_successor(self) -> Node`: 对应thrift文件中的get_successor
 -   `_log_self(self)`: 定期执行的第四个操作，执行日志输出，用于调试和日志记录
 -   `run_periodically(self)`: 用于定期执行上面提到的相关操作，该定期执行的逻辑已实现
 
@@ -155,3 +157,5 @@ flowchart LR
 在完成了chord环的构建之后，simulation执行初始测试数据的导入，即导入测试KV Pair, 格式为test-key-i: test-value-i。在导入的过程中，也可以看到不同的ChordNode会定期在日志中打印自己维护的Key-Value信息。
 
 等待测试数据导入之后，就可以在命令行中执行get/put操作了。在运行示例中，首先get一个不存在的key，返回结果not found；之后，分别get三个不同的test-key-i，这三个key存在不同的ChordNode上，返回结果也能够印证这一点；最后，执行了一个put和get操作，也能够得到正确的返回结果。
+
+## Replication and Fault Recovery

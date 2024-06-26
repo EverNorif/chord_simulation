@@ -7,6 +7,7 @@ service ChordNode {
     void join(1: Node node),
     void notify(1: Node node),
     Node get_predecessor(),
+    Node get_successor(),
 }
 
 enum KVStatus {

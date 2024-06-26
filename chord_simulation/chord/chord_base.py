@@ -24,6 +24,7 @@ class BaseChordNode:
         self.__timer.start()
         self.predecessor = None
         self.rpc_pool = []
+        self.backup_rpc_pool = []
 
     def lookup(self, key: str) -> KeyValueResult:
         raise NotImplementedError
@@ -57,6 +58,9 @@ class BaseChordNode:
 
     def get_predecessor(self) -> Node:
         return self.predecessor
+
+    def get_successor(self) -> Node:
+        raise NotImplementedError
 
     def _log_self(self):
         raise NotImplementedError
