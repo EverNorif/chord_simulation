@@ -4,6 +4,7 @@ import os
 import threading
 import traceback
 from thriftpy2.rpc import make_client
+from thriftpy2.transport import TTransportException
 from .struct_class import KeyValueResult, Node, M
 from loguru import logger
 
@@ -62,11 +63,32 @@ class BaseChordNode:
     def get_successor(self) -> Node:
         raise NotImplementedError
 
+    def heart_beat(self) -> str:
+        return str(id(self))
+
     def _log_self(self):
         raise NotImplementedError
 
+    def _fault_detect(self):
+        raise NotImplementedError
+
+    def _fault_recovery(self):
+        raise NotImplementedError
+
+    def _fault_detect_recovery(self):
+        try:
+            return self._fault_detect()
+        except (TTransportException, BrokenPipeError) as e:
+            self.logger.debug(f"disconnect happened. Exception is {e}")
+            return self._fault_recovery()
+        except AttributeError as e:
+            self.logger.debug(f"init don't finish. Exception is {e}")
+        except Exception as e:
+            raise e
+
     def run_periodically(self):
         try:
+            self._fault_detect_recovery()
             self._stabilize()
             self._fix_fingers()
             self._check_predecessor()
@@ -123,3 +145,16 @@ def is_between(node: Node, node1: Node, node2: Node):
         return True
     else:
         return node.node_id > start_node_id or node.node_id <= end_node_id
+
+
+def is_alive_node(node: Node, node_logger):
+    """
+     judge if node is online/alive using node heart beat.
+    """
+    try:
+        conn_node = connect_node(node)
+        conn_node.heart_beat()
+        return True
+    except Exception as e:
+        node_logger.debug(e)
+        return False

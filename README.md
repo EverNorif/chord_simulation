@@ -46,6 +46,7 @@ service ChordNode {
     void notify(1: Node node), // 提示本ChordNode修改前驱为node
     Node get_predecessor(), // 返回本ChordNode的前驱
     Node get_successor(), // 返回本ChordNode的后继
+    string heart_beat(), // 返回本ChordNode的心跳信息
 }
 ```
 
@@ -83,13 +84,17 @@ struct Node {
 -   `_closet_preceding_node(self, key_id: int) -> Node`: 返回在find_successor过程中下一步应该寻找的结点
 -   `put(self, key: str, value: str) -> KeyValueResult`: 对应thrift文件中的put
 -   `join(self, node: Node)`: 对应thrift文件中的join
--   `_stabilize(self)`: 定期执行的第一个操作，定期确定自身的后继并提示后继的前驱
+-   `_stabilize(self)`: 定期执行的第二个操作，定期确定自身的后继并提示后继的前驱
 -   `notify(self, node: Node)`: 对应thrift文件中的notify
--   `_fix_fingers(self)`: 定期执行的第二个操作，修复自身的finger table
--   `_check_predecessor(self)`: 定期执行的第三个操作，检查前驱是否正常工作
+-   `_fix_fingers(self)`: 定期执行的第三个操作，修复自身的finger table
+-   `_check_predecessor(self)`: 定期执行的第四个操作，检查前驱是否正常工作
 -   `get_predecessor(self) -> Node`: 对应thrift文件中的get_predecessor
 -   `get_successor(self) -> Node`: 对应thrift文件中的get_successor
--   `_log_self(self)`: 定期执行的第四个操作，执行日志输出，用于调试和日志记录
+-   `heart_beat(self) -> str`: 对应thrift文件中的heart_beat
+-   `_fault_detect(self)`: 利用heart beat心跳信息来检测是否有结点失效
+-   `_fault_recovery(self)`: 在相关结点失效之后进行剩余结点局部修复
+-   `_fault_detect_recovery(self)`: 定期执行的第一个操作，用于检测结点失效并进行chord环的修复
+-   `_log_self(self)`: 定期执行的第五个操作，执行日志输出，用于调试和日志记录
 -   `run_periodically(self)`: 用于定期执行上面提到的相关操作，该定期执行的逻辑已实现
 
 在BaseChordNode中还提供了logger成员变量，用于日志记录。
@@ -100,6 +105,7 @@ struct Node {
 -   `connect_address(address, port)`: 连接给定地址和端口对应的服务对象
 -   `connect_node(node: Node)`: 连接给定Node对应的服务对象
 -   `is_between(node: Node, node1: Node, node2: Node)`: 用于chord环上的范围判断，判断node是否在node1->node2这段顺时针弧上，包括node2但是不包括node1，即在逻辑上判断node是否属于(node1, node2]
+-   `is_alive_node(node: Node, node_logger)`: 用于判断某个Node是否还在线，通过Node的heart beat信息来进行判断
 
 >   这里需要注意的是，只有在通过相关工具函数获得了对应地址和端口的服务对象之后，才能调用暴露出来的相关方法。
 

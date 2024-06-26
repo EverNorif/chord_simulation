@@ -1,5 +1,5 @@
 from ..chord.chord_base import BaseChordNode
-from ..chord.chord_base import connect_node, hash_func, is_between
+from ..chord.chord_base import connect_node, hash_func, is_between, is_alive_node
 from ..chord.struct_class import KeyValueResult, Node, KVStatus
 from thriftpy2.thrift import TClient
 
@@ -94,7 +94,8 @@ class ChordNode(BaseChordNode):
         self._fix_backup_rpc_pool()
 
     def notify(self, node: Node):
-        if not self.predecessor.valid or is_between(node, self.predecessor, self.self_node):
+        if not self.predecessor.valid or not is_alive_node(self.predecessor, self.logger) \
+                or is_between(node, self.predecessor, self.self_node):
             self.predecessor = node
 
     def _stabilize(self):
@@ -105,13 +106,21 @@ class ChordNode(BaseChordNode):
 
         conn_successor = self.rpc_pool[self.successor_rpc_pool_idx]
         x = conn_successor.get_predecessor()
-        if is_between(x, self.self_node, self.successor):
+        if is_between(x, self.self_node, self.successor) and is_alive_node(x, self.logger):
             self.successor = x
             self.rpc_pool[self.successor_rpc_pool_idx] = connect_node(self.successor)
 
         self._fix_backup_rpc_pool()
         conn_successor = self.rpc_pool[self.successor_rpc_pool_idx]
         conn_successor.notify(self.self_node)
+
+    def _fault_detect(self):
+        return self.rpc_pool[self.successor_rpc_pool_idx].heart_beat()
+
+    def _fault_recovery(self):
+        self.successor = self.suc_successor
+        self.rpc_pool[self.successor_rpc_pool_idx] = connect_node(self.successor)
+        self._fix_backup_rpc_pool()
 
     def _fix_fingers(self):
         pass
@@ -124,8 +133,8 @@ class ChordNode(BaseChordNode):
 
     def _fix_backup_rpc_pool(self):
         """
-        fix backup rpc pool when successor change.
-        backup rpc pool includes successor, successor.successor
+         fix backup rpc pool when successor change.
+         backup rpc pool includes successor, successor.successor
         """
         self.suc_successor = self.rpc_pool[self.successor_rpc_pool_idx].get_successor()
         self.backup_rpc_pool[self.successor_rpc_pool_idx] = self.rpc_pool[self.successor_rpc_pool_idx]

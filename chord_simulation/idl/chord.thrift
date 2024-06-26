@@ -8,6 +8,7 @@ service ChordNode {
     void notify(1: Node node),
     Node get_predecessor(),
     Node get_successor(),
+    string heart_beat(),
 }
 
 enum KVStatus {
