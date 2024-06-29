@@ -15,6 +15,12 @@ class KVStatus(chord_thrift.KVStatus):
     NOT_FOUND = chord_thrift.KVStatus.NOT_FOUND
 
 
+class KVStoreType(chord_thrift.KVStoreType):
+    BASE = chord_thrift.KVStoreType.BASE
+    PRE_BACKUP = chord_thrift.KVStoreType.PRE_BACKUP
+    PRE_PRE_BACKUP = chord_thrift.KVStoreType.PRE_PRE_BACKUP
+
+
 class KeyValueResult(chord_thrift.KeyValueResult):
     def __init__(self, key: str, value: str, node_id: int, status: KVStatus = KVStatus.VALID):
         super().__init__(key, value, node_id, status)

@@ -41,20 +41,26 @@ pip install -r requirements.txt
 service ChordNode {
     KeyValueResult lookup(1: string key), // 查询key对应的value，返回KeyValueResult
     Node find_successor(1: i32 key_id), // 查询key/id在chord环上对应的后继是哪一个
-    KeyValueResult put(1: string key, 2: string value), // 向本ChordNode执行put操作
+    KeyValueResult put(1: string key, 2: string value, 3: bool backup), // 向本ChordNode执行put操作, backup表示是否需要对该K-V Pair执行备份操作
     void join(1: Node node), // 将本ChordNode加入node结点所在的chord环
     void notify(1: Node node), // 提示本ChordNode修改前驱为node
     Node get_predecessor(), // 返回本ChordNode的前驱
     Node get_successor(), // 返回本ChordNode的后继
     string heart_beat(), // 返回本ChordNode的心跳信息
+    void backup(1: string backup_kv_store_key, 2: string key, 3: string value), // 将key-value备份到指定的backup_kv_store中
+    void replay(1: KVStoreType kv_store_type), // 对指定的kv store执行重放操作，以恢复存储
 }
 ```
 
-定义的数据结构包括KVStatus，KeyValueResult以及Node，每个数据结构中包含对应的属性定义：
+定义的数据结构包括KVStatus，KVStoreType，KeyValueResult以及Node，每个数据结构中包含对应的属性定义：
 
 ```idl
 enum KVStatus {
     VALID, NOT_FOUND // 表示K-V Pair的状态，包括有效VALID以及未找到NOT_FOUND
+}
+
+enum KVStoreType {
+    BASE, PRE_BACKUP, PRE_PRE_BACKUP // 表示KVStore的类型，包括本结点基础存储、前驱Backup存储、前驱的前驱Backup存储
 }
 
 struct KeyValueResult {
@@ -82,7 +88,7 @@ struct Node {
 -   `_lookup_local(self, key: str) -> KeyValueResult`: 在本地KV存储中寻找对应的K-V Pair
 -   `find_successor(self, key_id: int) -> Node`: 对应thrift文件中的find_successor
 -   `_closet_preceding_node(self, key_id: int) -> Node`: 返回在find_successor过程中下一步应该寻找的结点
--   `put(self, key: str, value: str) -> KeyValueResult`: 对应thrift文件中的put
+-   `put(self, key: str, value: str, backup: bool) -> KeyValueResult`: 对应thrift文件中的put
 -   `join(self, node: Node)`: 对应thrift文件中的join
 -   `_stabilize(self)`: 定期执行的第二个操作，定期确定自身的后继并提示后继的前驱
 -   `notify(self, node: Node)`: 对应thrift文件中的notify
@@ -91,6 +97,8 @@ struct Node {
 -   `get_predecessor(self) -> Node`: 对应thrift文件中的get_predecessor
 -   `get_successor(self) -> Node`: 对应thrift文件中的get_successor
 -   `heart_beat(self) -> str`: 对应thrift文件中的heart_beat
+-   `backup(self, backup_kv_store_key: str, key: str, value: str)`: 对应thrift文件中的backup
+-   `replay(self, kv_store_type: KVStoreType)`: 对应thrift文件中的replay
 -   `_fault_detect(self)`: 利用heart beat心跳信息来检测是否有结点失效
 -   `_fault_recovery(self)`: 在相关结点失效之后进行剩余结点局部修复
 -   `_fault_detect_recovery(self)`: 定期执行的第一个操作，用于检测结点失效并进行chord环的修复
@@ -165,3 +173,15 @@ flowchart LR
 等待测试数据导入之后，就可以在命令行中执行get/put操作了。在运行示例中，首先get一个不存在的key，返回结果not found；之后，分别get三个不同的test-key-i，这三个key存在不同的ChordNode上，返回结果也能够印证这一点；最后，执行了一个put和get操作，也能够得到正确的返回结果。
 
 ## Replication and Fault Recovery
+
+在本项目实现的chord协议模拟当中，增加了副本机制以及故障恢复策略。
+
+副本机制方面，使用了三副本，一份数据会被分别存储在三个结点上。考虑某个结点，它负责的数据会在本结点上存储一份、在它的后继上存储一份、在它后继的后继上存储一份。换句话说，对于某个结点，它会负责存储一份本结点的数据，存储一份前驱结点上的数据、负责存储一份前驱的前驱结点上的数据。故障恢复策略方面，引入心跳机制，定期检测相连结点的存活状况。如果检测到相关结点掉线，就使用对应结点的副本进行数据重放操作，从而达到故障恢复的效果。
+
+接下来我们模拟Chord环中结点掉线以及故障恢复的流程。下面是运行示例，演示了相关模拟效果：
+
+https://github.com/EverNorif/chord_simulation/assets/79133788/3e3d0049-69a1-472d-99b8-401dfa9dc89a
+
+与上面的Run Simulation一样，首先通过Python启动三个不同的ChordNode进程，分别运行在50001，50002和50003端口上。启动simulation程序之后，这三个ChordNode会构建初始的chord环，并在此之后进行测试数据的导入。观察日志信息，可以看到每个ChordNode进程都会输出三类KV store的存储信息，分别是本节点负责的KV Store、本节点上存储的属于前驱的数据副本、本节点上存储的属于前驱的前驱的数据副本。
+
+这里特别关注测试数据`test-key-42`的查询结果。首先，在初始的三个结点构成的chord环中，`test-key-42`的数据是由`50952`结点负责的，在命令行中执行get查询也能够查找到对应结果。之后，手动停止`50952`结点对应的进程。可以看到经过其他结点会检测到相关结点的掉线情况，并执行相关的故障恢复。此时继续进行`test-key-42`的get查询，可以看到该数据已经被转移给`52929`结点负责，这仍然符合整体chord环的定义。此时的chord环中仅有两个结点，并且在`50952`结点掉线之后，其中的数据通过副本进行恢复。更进一步，停止`52929`结点，此时所有的数据都应该由`9362`一个结点负责。执行查询操作，可以看到`test-key-42`数据仍然没有丢失，而是转移到`9362`结点上进行存储。这说明了副本机制和故障恢复策略是能够正常工作的。

@@ -5,7 +5,8 @@ import threading
 import traceback
 from thriftpy2.rpc import make_client
 from thriftpy2.transport import TTransportException
-from .struct_class import KeyValueResult, Node, M
+from thriftpy2.thrift import TApplicationException
+from .struct_class import KeyValueResult, Node, M, KVStoreType
 from loguru import logger
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -39,7 +40,7 @@ class BaseChordNode:
     def _closest_preceding_node(self, key_id: int) -> Node:
         raise NotImplementedError
 
-    def put(self, key: str, value: str) -> KeyValueResult:
+    def put(self, key: str, value: str, backup: bool) -> KeyValueResult:
         raise NotImplementedError
 
     def join(self, node: Node):
@@ -66,6 +67,12 @@ class BaseChordNode:
     def heart_beat(self) -> str:
         return str(id(self))
 
+    def backup(self, backup_kv_store_key: str, key: str, value: str):
+        raise NotImplementedError
+
+    def replay(self, kv_store_type: KVStoreType):
+        raise NotImplementedError
+
     def _log_self(self):
         raise NotImplementedError
 
@@ -83,6 +90,9 @@ class BaseChordNode:
             return self._fault_recovery()
         except AttributeError as e:
             self.logger.debug(f"init don't finish. Exception is {e}")
+        except TApplicationException as e:
+            if e.type == TApplicationException.MISSING_RESULT:
+                self.logger.debug(f"missing result. Exception is {e}")
         except Exception as e:
             raise e
 
@@ -156,5 +166,5 @@ def is_alive_node(node: Node, node_logger):
         conn_node.heart_beat()
         return True
     except Exception as e:
-        node_logger.debug(e)
+        node_logger.warning(e)
         return False

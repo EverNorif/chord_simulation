@@ -37,7 +37,7 @@ class Client:
         return self.__do_with_reconnect(self.__do_put, key, value)
 
     def __do_put(self, key: str, value: str):
-        put_res: KeyValueResult = self.node.put(key, value)
+        put_res: KeyValueResult = self.node.put(key, value, True)
         put_status = True if put_res.status == KVStatus.VALID else False
         return put_status, put_res.node_id
 
